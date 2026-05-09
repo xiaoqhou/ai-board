@@ -1,18 +1,19 @@
 {
-	"name": "Nix Environment",
-	"image": "mcr.microsoft.com/devcontainers/base:ubuntu",
-	"remoteUser": "vscode",
-	"features": {
-		"ghcr.io/devcontainers/features/nix:1": {
-			"extraNixConfig": "experimental-features = nix-command flakes",
-			"packages": "git,git-lfs,curl,jq,vim,bat,direnv,fish,nodejs,uv,go,tmux,devbox"
-		},
-		"ghcr.io/devcontainers-community/features/direnv:1": {},
-		"ghcr.io/devcontainers/features/sshd:1": {}
+	"name": "Nix Environment from Dockerfile",
+	"build": {
+		"dockerfile": "Dockerfile"
 	},
-	"postCreateCommand": {
-		"direnv-allow": "direnv allow /workspaces/ai-board",
-		"hide-direnv-diff": "mkdir -p ~/.config/direnv && echo '[global]\\nhide_env_diff = true' > ~/.config/direnv/direnv.toml && direnv allow"
+	"remoteUser": "vscode",
+	"overrideCommand": false,
+	"forwardPorts": [
+		4096
+	],
+	"portsAttributes": {
+		"4096": {
+			"label": "Opencode public",
+			"visibility": "public",
+			"protocol": "http"
+		}
 	},
 	"customizations": {
 		"vscode": {
