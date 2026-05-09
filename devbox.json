@@ -1,12 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.2/.schema/devbox.schema.json",
   "packages": [
-    "just@latest",
-    "pkl@latest",
-    "kubectl@latest",
-    "k9s@latest",
-    "kubectx@latest",
-    "tenv@latest",
     "truffleHog@latest",
     "git-filter-repo@latest",
     "kind@latest"

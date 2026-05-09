@@ -5,7 +5,7 @@
 	"features": {
 		"ghcr.io/devcontainers/features/nix:1": {
 			"extraNixConfig": "experimental-features = nix-command flakes",
-			"packages": "git,git-lfs,curl,jq,vim,bat,direnv,fish,nodejs,uv,go,devbox"
+			"packages": "git,git-lfs,curl,jq,vim,bat,direnv,fish,nodejs,uv,go,tmux,devbox"
 		},
 		"ghcr.io/devcontainers-community/features/direnv:1": {},
 		"ghcr.io/devcontainers/features/sshd:1": {}
