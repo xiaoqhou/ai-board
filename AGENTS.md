@@ -109,3 +109,7 @@ cb = Codebox(url=os.environ["CODEBOX_URL"])
 2. Executes coding, debugging, testing tasks
 3. Shares generated pages (e.g., `index.html`) via codespace public URL
 4. Sends result links to users through channels like Telegram
+
+## 5. Git Commit Rules
+
+- All commits made by agent must use `[agent]` prefix in commit message (e.g., `[agent] add feature X`).
