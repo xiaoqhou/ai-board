@@ -1,7 +1,7 @@
 FROM docker.io/library/debian:bullseye-20260112-slim
 
 RUN apt-get update && \
-    apt-get install -y curl ca-certificates procps iproute2 util-linux dnsutils netcat-openbsd git jq vim fish && \
+    apt-get install -y curl ca-certificates procps iproute2 util-linux dnsutils netcat-openbsd git jq vim fish supervisor && \
     # Create the vscode user
     useradd -m vscode && \
     # [Optional] Add sudo support
@@ -12,6 +12,23 @@ RUN apt-get update && \
 RUN curl -sSfL https://artifacts.nixos.org/nix-installer | sh -s -- install linux \
     --extra-conf "sandbox = false" --enable-flakes --init none --no-confirm && \
     sudo chown -R vscode /nix
+
+RUN mkdir -p /etc/supervisor/conf.d/ /var/log/supervisor
+RUN cat <<EOF > /etc/supervisor/conf.d/opencode.conf
+[program:opencode]
+command=/bin/bash -lc "opencode serve"
+user=vscode
+environment=HOME="/home/vscode",USER="vscode"
+directory=/home/vscode
+autostart=true
+autorestart=false
+stderr_logfile=/var/log/opencode.err.log
+stdout_logfile=/var/log/opencode.out.log
+EOF
+
+# Pre-create logs and set permissions while still root
+RUN touch /var/log/opencode.err.log /var/log/opencode.out.log && \
+    chown vscode:vscode /var/log/opencode.err.log /var/log/opencode.out.log
 
 ENV PATH="${PATH}:/nix/var/nix/profiles/default/bin"
 # Set the default user for the image
@@ -32,4 +49,7 @@ RUN mkdir -p /home/vscode/.config/
 COPY opencode.jsonc /home/vscode/.config/opencode.jsonc
 
 # CMD ["sleep", "infinity"]
-ENTRYPOINT ["opencode", "serve"]
+# ENTRYPOINT ["opencode", "serve"]
+
+USER root
+ENTRYPOINT ["/usr/bin/supervisord", "-n"]
