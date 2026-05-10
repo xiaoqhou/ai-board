@@ -2,7 +2,7 @@ FROM docker.io/library/debian:bullseye-20260112-slim
 
 # Install necessary packages and create a non-root user
 RUN apt-get update && \
-    apt-get install -y curl ca-certificates procps iproute2 util-linux dnsutils netcat-openbsd git jq vim fish supervisor && \
+    apt-get install -y curl ca-certificates procps iproute2 util-linux dnsutils netcat-openbsd git jq vim fish tmux && \
     useradd -m vscode && \
     apt-get install -y sudo && \
     echo vscode ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/vscode && \
@@ -13,18 +13,6 @@ RUN curl -sSfL https://artifacts.nixos.org/nix-installer | sh -s -- install linu
     --extra-conf "sandbox = false" --enable-flakes --init none --no-confirm && \
     sudo chown -R vscode /nix
 
-# Set up Supervisor to run opencode serve on container start
-RUN cat <<EOF > /etc/supervisor/conf.d/opencode.conf
-[program:opencode]
-command=/bin/bash -lc "opencode serve"
-user=vscode
-environment=HOME="/home/vscode",USER="vscode"
-directory=/home/vscode
-autostart=true
-autorestart=false
-stderr_logfile=/var/log/opencode.err.log
-stdout_logfile=/var/log/opencode.out.log
-EOF
 
 ENV NIX_PAGER=cat
 # Update PATH to include both the system Nix and the user's Nix profile
@@ -39,9 +27,7 @@ RUN nix profile add . && \
     nix-collect-garbage -d
 
 # Set up opencode server configuration
-RUN mkdir -p /home/vscode/.config/
-COPY opencode.jsonc /home/vscode/.config/opencode.jsonc
+RUN mkdir -p /home/vscode/.config/opencode/
+COPY opencode.jsonc /home/vscode/.config/opencode/opencode.jsonc
 
-# Entrypoint to start Supervisor, which will manage the opencode server process
-USER root
-ENTRYPOINT ["/usr/bin/supervisord", "-n"]
+CMD ["sleep", "infinity"]

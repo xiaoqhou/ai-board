@@ -15,6 +15,7 @@
 			"protocol": "http"
 		}
 	},
+	"postStartCommand": "tmux new -d -s opencode -c /workspaces/ai-codebox/ 'opencode serve'",
 	"customizations": {
 		"vscode": {
 			"settings": {
