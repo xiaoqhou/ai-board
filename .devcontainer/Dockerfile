@@ -28,5 +28,8 @@ RUN nix profile add . && \
 
 ENV PATH="/home/vscode/.nix-profile/bin:${PATH}"
 
+RUN mkdir -p /home/vscode/.config/
+COPY opencode.jsonc /home/vscode/.config/opencode.jsonc
+
 # CMD ["sleep", "infinity"]
 ENTRYPOINT ["opencode", "serve"]

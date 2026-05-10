@@ -4,5 +4,6 @@
     "server": {
         "port": 4096,
         "hostname": "127.0.0.1"
-    }
+    },
+    "permission": "allow"
 }
