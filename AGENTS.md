@@ -1,98 +1,100 @@
-# AGENTS.md — AI Agent 使用指南
+# AGENTS.md - AI Agent Usage Guide
 
-## 1. 项目简介
+Use English, stay accurate, keep it concise.
 
-本项目是一个 **AI Agent 的编程工作台（Board）**，为 AI Agent（如 Hermes Agent）提供一个云端的代码开发环境。Agent 可以在此代码空间中编写代码、运行命令、完成任务，并将结果或报告通过 Telegram 等渠道发布。
+## 1. Project Overview
 
-核心组件：
-- **OpenCode**：基于命令行的 AI 编程助手，以 server 模式运行，提供 HTTP API 供 Agent 调用。
-- **Codespace**：云端开发环境，预配置了 Nix 包管理器、开发工具和 OpenCode 服务。
+This project is a **programming workspace (Board) for AI Agents**, providing a cloud-based development environment for AI Agents (like Hermes Agent). Agents can write code, run commands, complete tasks, and publish results or reports through channels like Telegram.
 
-## 2. AI Agent 使用说明（通过 Codebox API 调用 OpenCode）
+Core components:
+- **OpenCode**: Command-line based AI programming assistant, running in server mode, providing HTTP API for Agent calls.
+- **Codespace**: Cloud development environment, pre-configured with Nix package manager, development tools, and OpenCode service.
 
-OpenCode 在此代码空间中以后台 server 模式运行（端口 `4096`），Agent 可以通过 HTTP API 与其交互。
+## 2. AI Agent Usage (Call OpenCode via Codebox API)
 
-### API 地址
+OpenCode runs in server mode in this codespace (port `4096`). Agents can interact with it via HTTP API.
+
+### API Endpoint
 
 ```
 http://<codespace-url>:4096
 ```
 
-### 调用方式
+### Call Format
 
-Agent 向 OpenCode server 发送 API 请求，格式如下：
+Agents send API requests to OpenCode server with this format:
 
 ```json
 {
   "messages": [
-    {"role": "user", "content": "你的指令"}
+    {"role": "user", "content": "Your instructions"}
   ]
 }
 ```
 
-示例（使用 curl）：
+Example (using curl):
 
 ```bash
 curl -X POST http://localhost:4096/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"messages":[{"role":"user","content":"列出当前目录文件"}]}'
+  -d '{"messages":[{"role":"user","content":"List files in current directory"}]}'
 ```
 
-OpenCode 会执行指令并返回结果。Agent 可以通过循环调用 API 来完成复杂任务。
+OpenCode executes the instructions and returns results. Agents can complete complex tasks by looping API calls.
 
-### 配置说明
+### Configuration
 
-OpenCode server 配置位于 `.devcontainer/opencode.jsonc`：
-- 端口：`4096`
-- 模型：`opencode/big-pickle`
-- 权限模式：`allow`（自动允许所有操作）
+OpenCode server configuration is in `.devcontainer/opencode.jsonc`:
+- Port: `4096`
+- Model: `opencode/big-pickle`
+- Permission mode: `allow` (automatically allows all operations)
 
-## 3. 目录结构
+## 3. Directory Structure
 
 ```
 /workspaces/ai-codebox/
-├── .devcontainer/           # 开发容器配置
-│   ├── devcontainer.json    # Codespace 配置（端口转发、服务启动）
-│   ├── Dockerfile           # 容器镜像定义
-│   ├── flake.nix            # Nix 包管理配置
-│   └── opencode.jsonc       # OpenCode server 配置
-├── index.html               # 静态首页（用于展示结果）
-├── README.md                # 项目说明
-└── AGENTS.md                # 本文件 — AI Agent 使用指南
+├── .devcontainer/           # Dev container configuration
+│   ├── devcontainer.json    # Codespace configuration (port forwarding, service startup)
+│   ├── Dockerfile           # Container image definition
+│   ├── flake.nix            # Nix package management config
+│   └── opencode.jsonc       # OpenCode server config
+├── index.html               # Static homepage (for displaying results)
+├── README.md                # Project documentation
+└── AGENTS.md                # This file - AI Agent Usage Guide
 ```
 
-## 4. 使用 codebox.py 连接到此代码空间
+## 4. Connecting to Codespace with codebox.py
 
-`codebox.py` 是 Hermes Agent 或其他 AI Agent 用来连接 Codebox（此代码空间）的客户端脚本。你可以通过以下方式使用它：
+`codebox.py` is a client script for Hermes Agent or other AI Agents to connect to Codebox (this codespace). Usage:
 
-### 基本用法
+### Basic Usage
 
 ```python
 from codebox import Codebox
 
-# 连接到代码空间
+# Connect to codespace
 cb = Codebox(url="http://<codespace-url>:4096")
 
-# 执行指令
+# Execute command
 result = cb.run("ls -la")
 print(result)
 
-# 读取文件
+# Read file
 content = cb.read("/workspaces/ai-codebox/README.md")
 
-# 写入文件
-cb.write("/workspaces/ai-codebox/output.md", "任务完成报告")
+# Write file
+cb.write("/workspaces/ai-codebox/output.md", "Task completion report")
 ```
 
-### 环境变量配置
+### Environment Variable Configuration
 
-建议将代码空间 URL 配置为环境变量：
+Recommended to configure codespace URL as environment variable:
 
 ```bash
 export CODEBOX_URL="http://<codespace-url>:4096"
 ```
 
-然后在脚本中读取：
+Then read in script:
 
 ```python
 import os
@@ -101,9 +103,9 @@ from codebox import Codebox
 cb = Codebox(url=os.environ["CODEBOX_URL"])
 ```
 
-### 工作流程
+### Workflow
 
-1. Agent 通过 `codebox.py` 连接到此代码空间
-2. 执行代码编写、调试、测试等任务
-3. 将生成的页面（如 `index.html`）通过代码空间的公开 URL 分享
-4. 通过 Telegram 等渠道将结果链接发送给用户
+1. Agent connects to this codespace via `codebox.py`
+2. Executes coding, debugging, testing tasks
+3. Shares generated pages (e.g., `index.html`) via codespace public URL
+4. Sends result links to users through channels like Telegram
