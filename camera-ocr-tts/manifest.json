@@ -1,0 +1,17 @@
+{
+  "name": "Camera OCR to TTS",
+  "short_name": "OCR2TTS",
+  "description": "Capture text with camera and have it read aloud",
+  "start_url": "/camera-ocr-tts/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

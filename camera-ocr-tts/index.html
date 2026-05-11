@@ -1,472 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Camera OCR → TTS</title>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#f5f5f5;--surface:#fff;--text:#222;--text-secondary:#666;--primary:#1976d2;--primary-hover:#1565c0;--border:#ddd;--shadow:0 2px 8px rgba(0,0,0,.1);--radius:12px;--accent:#e91e63;--success:#2e7d32;--error:#c62828}
-@media(prefers-color-scheme:dark){
-:root{--bg:#121212;--surface:#1e1e1e;--text:#e0e0e0;--text-secondary:#999;--primary:#42a5f5;--primary-hover:#64b5f6;--border:#333;--shadow:0 2px 8px rgba(0,0,0,.4);--accent:#f06292;--success:#66bb6a;--error:#ef5350}
-}
-html,body{height:100%;overflow:hidden}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;max-width:480px;margin:0 auto;width:100%;height:100dvh;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-header{padding:12px 16px;text-align:center;border-bottom:1px solid var(--border);background:var(--surface)}
-header h1{font-size:18px;font-weight:600;letter-spacing:-.3px}
-main{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:12px 16px;gap:12px}
-.camera-section{position:relative;aspect-ratio:4/3;background:var(--border);border-radius:var(--radius);overflow:hidden;flex-shrink:0}
-.camera-section video,.camera-section img,.camera-section .placeholder{width:100%;height:100%;object-fit:cover;display:block}
-.camera-section .placeholder{display:flex;align-items:center;justify-content:center;background:var(--surface);color:var(--text-secondary);font-size:14px;flex-direction:column;gap:8px}
-.camera-section .placeholder svg{width:48px;height:48px;opacity:.4}
-.camera-section .camera-overlay{position:absolute;inset:0;pointer-events:none;border:2px solid var(--primary);border-radius:var(--radius);opacity:0;transition:opacity .3s}
-.camera-section .camera-overlay.active{opacity:1}
-.camera-section .spinner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border:4px solid var(--border);border-top:4px solid var(--primary);border-radius:50%;animation:spin .8s linear infinite;display:none;z-index:2}
-.camera-section .spinner.show{display:block}
-@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
-.camera-section .ocr-progress{position:absolute;bottom:0;left:0;right:0;height:4px;background:var(--border);z-index:2;display:none}
-.camera-section .ocr-progress.show{display:block}
-.camera-section .ocr-progress-bar{height:100%;background:var(--primary);width:0;transition:width .3s}
-.file-input-wrap{display:none;gap:8px;align-items:center;justify-content:center;padding:12px;background:var(--surface);border-radius:var(--radius);border:2px dashed var(--border)}
-.file-input-wrap.show{display:flex}
-.file-input-wrap label{color:var(--primary);font-weight:500;font-size:14px;cursor:pointer;padding:8px 16px;border:1px solid var(--primary);border-radius:8px}
-.file-input-wrap input[type=file]{display:none}
-.btn-group{display:flex;gap:8px;flex-wrap:wrap}
-.btn{flex:1;min-width:0;padding:14px 16px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;touch-action:manipulation;transition:opacity .15s,background .15s;min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
-.btn:active{opacity:.7}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn-primary{background:var(--primary);color:#fff}
-.btn-primary:hover:not(:disabled){background:var(--primary-hover)}
-.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
-.btn-accent{background:var(--accent);color:#fff}
-.btn-success{background:var(--success);color:#fff}
-.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
-.text-section{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
-.text-section-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-secondary);font-weight:500}
-.text-section-body{flex:1;overflow-y:auto;padding:12px 14px;font-size:14px;line-height:1.6;-webkit-overflow-scrolling:touch}
-.text-section-body .sentence{padding:4px 6px;border-radius:6px;transition:background .2s;margin:2px 0}
-.text-section-body .sentence.active{background:var(--primary);color:#fff}
-.text-section-body .sentence.done{opacity:.5}
-.text-section-body .empty-state{color:var(--text-secondary);font-style:italic;text-align:center;padding:24px 0;font-size:13px}
-.text-section-body .error-state{color:var(--error);text-align:center;padding:24px 0;font-size:13px}
-.progress-section{display:none;align-items:center;gap:10px;padding:4px 0;flex-shrink:0}
-.progress-section.show{display:flex}
-.progress-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
-.progress-fill{height:100%;background:var(--primary);width:0;transition:width .3s;border-radius:3px}
-.progress-label{font-size:12px;color:var(--text-secondary);min-width:36px;text-align:right}
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);color:var(--text);padding:12px 20px;border-radius:10px;box-shadow:var(--shadow);font-size:14px;z-index:100;border:1px solid var(--border);max-width:90%;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none}
-.toast.show{opacity:1}
-.toast.error{color:#fff;border-color:var(--error)}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#121212">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>Camera OCR → TTS</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header><h1>Camera OCR → TTS</h1></header>
-<main>
-  <div class="camera-section">
-    <div class="placeholder" id="placeholder">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-      <span>Camera preview</span>
-    </div>
-    <video id="video" playsinline autoplay muted style="display:none"></video>
-    <img id="capturedImg" style="display:none" alt="Captured">
-    <div class="camera-overlay" id="cameraOverlay"></div>
-    <div class="spinner" id="spinner"></div>
-    <div class="ocr-progress" id="ocrProgress">
-      <div class="ocr-progress-bar" id="ocrProgressBar"></div>
-    </div>
+  <div id="app">
+    <header>
+      <h1>📷 OCR → 🗣️ TTS</h1>
+      <p class="subtitle">Point, capture, listen</p>
+    </header>
+
+    <main>
+      <div id="camera-section">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas" hidden></canvas>
+        <div id="camera-controls">
+          <button id="capture-btn" class="btn primary">Capture & OCR</button>
+          <button id="switch-camera-btn" class="btn secondary">🔄 Switch Camera</button>
+        </div>
+      </div>
+
+      <div id="result-section" hidden>
+        <div id="ocr-result">
+          <h3>Recognized Text</h3>
+          <p id="ocr-text" class="ocr-text"></p>
+        </div>
+        <div id="tts-controls">
+          <button id="speak-btn" class="btn primary">🔊 Speak</button>
+          <button id="stop-btn" class="btn secondary">⏹️ Stop</button>
+          <div id="voice-controls">
+            <label for="rate">Speed: <span id="rate-value">1.0</span></label>
+            <input type="range" id="rate" min="0.5" max="2.0" step="0.1" value="1.0">
+            <label for="pitch">Pitch: <span id="pitch-value">1.0</span></label>
+            <input type="range" id="pitch" min="0.5" max="2.0" step="0.1" value="1.0">
+          </div>
+        </div>
+      </div>
+
+      <div id="loading-overlay" hidden>
+        <div class="spinner"></div>
+        <p id="loading-text">Processing...</p>
+      </div>
+
+      <div id="error-toast" hidden></div>
+    </main>
+
+    <footer>
+      <p>Camera OCR → TTS · Works offline after first load</p>
+    </footer>
   </div>
 
-  <div class="file-input-wrap" id="fileInputWrap">
-    <label for="fileInput">Choose image or take photo</label>
-    <input type="file" id="fileInput" accept="image/*" capture="environment">
-  </div>
-
-  <div class="btn-group" id="btnGroup">
-    <button class="btn btn-primary" id="btnCapture" data-action="capture">📸 Capture Photo</button>
-    <button class="btn btn-success" id="btnSpeak" disabled>🔊 Speak Aloud</button>
-  </div>
-
-  <div class="text-section" id="textSection">
-    <div class="text-section-header">
-      <span>Extracted Text</span>
-      <button class="btn btn-outline" id="btnCopy" style="padding:4px 10px;font-size:11px;min-height:auto;border-radius:6px" disabled>Copy</button>
-    </div>
-    <div class="text-section-body" id="textBody">
-      <div class="empty-state">Point your camera at text and tap Capture</div>
-    </div>
-  </div>
-
-  <div class="progress-section" id="progressSection">
-    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    <span class="progress-label" id="progressLabel">0/0</span>
-  </div>
-</main>
-
-<div class="toast" id="toast"></div>
-
-<script type="module">
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
-
-const video = $('#video');
-const placeholder = $('#placeholder');
-const capturedImg = $('#capturedImg');
-const overlay = $('#cameraOverlay');
-const spinner = $('#spinner');
-const ocrProgress = $('#ocrProgress');
-const ocrProgressBar = $('#ocrProgressBar');
-const btnCapture = $('#btnCapture');
-const btnSpeak = $('#btnSpeak');
-const btnCopy = $('#btnCopy');
-const textBody = $('#textBody');
-const progressSection = $('#progressSection');
-const progressFill = $('#progressFill');
-const progressLabel = $('#progressLabel');
-const toast = $('#toast');
-const fileInputWrap = $('#fileInputWrap');
-const fileInput = $('#fileInput');
-
-let mediaStream = null;
-let capturedBlob = null;
-let sentences = [];
-let ttsIndex = -1;
-let ttsPlaying = false;
-let ttsPaused = false;
-let ttsQueue = [];
-let currentUtterance = null;
-
-function showToast(msg, isError = false) {
-  toast.textContent = msg;
-  toast.className = 'toast' + (isError ? ' error' : '');
-  toast.classList.add('show');
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => toast.classList.remove('show'), 3000);
-}
-
-async function startCamera() {
-  try {
-    if (!navigator.mediaDevices?.getUserMedia) throw new Error('getUserMedia not supported');
-    const constraints = {
-      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-      audio: false
-    };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    mediaStream = stream;
-    video.srcObject = stream;
-    video.style.display = 'block';
-    placeholder.style.display = 'none';
-    capturedImg.style.display = 'none';
-    overlay.classList.add('active');
-    fileInputWrap.classList.remove('show');
-    btnCapture.textContent = '📸 Snap Photo';
-    btnCapture.dataset.action = 'snap';
-  } catch (err) {
-    console.warn('Camera error:', err.message);
-    showToast('Camera unavailable — using file picker', true);
-    fileInputWrap.classList.add('show');
-    btnCapture.textContent = '📸 Capture Photo';
-    btnCapture.dataset.action = 'capture';
-  }
-}
-
-async function snapPhoto() {
-  if (!mediaStream && capturedBlob) {
-    runOCR(capturedBlob);
-    return;
-  }
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth || 1920;
-  canvas.height = video.videoHeight || 1080;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
-  stopStream();
-  const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', .9));
-  capturedBlob = blob;
-  const url = URL.createObjectURL(blob);
-  capturedImg.src = url;
-  capturedImg.style.display = 'block';
-  video.style.display = 'none';
-  placeholder.style.display = 'none';
-  overlay.classList.remove('active');
-  btnCapture.textContent = '📸 Retake';
-  btnCapture.dataset.action = 'retake';
-  runOCR(blob);
-}
-
-function stopStream() {
-  if (mediaStream) {
-    mediaStream.getTracks().forEach(t => t.stop());
-    mediaStream = null;
-  }
-}
-
-function resetToInitial() {
-  stopStream();
-  video.style.display = 'none';
-  capturedImg.style.display = 'none';
-  placeholder.style.display = 'flex';
-  overlay.classList.remove('active');
-  btnCapture.textContent = '📸 Capture Photo';
-  btnCapture.dataset.action = 'capture';
-  btnSpeak.disabled = true;
-  btnCopy.disabled = true;
-  sentences = [];
-  ttsQueue = [];
-  ttsIndex = -1;
-  ttsPlaying = false;
-  ttsPaused = false;
-  progressSection.classList.remove('show');
-  progressFill.style.width = '0';
-  progressLabel.textContent = '0/0';
-  textBody.innerHTML = '<div class="empty-state">Point your camera at text and tap Capture</div>';
-  if (currentUtterance && window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-    currentUtterance = null;
-  }
-  capturedBlob = null;
-}
-
-async function runOCR(blob) {
-  spinner.classList.add('show');
-  ocrProgress.classList.add('show');
-  ocrProgressBar.style.width = '0%';
-  textBody.innerHTML = '<div class="empty-state">Running OCR…</div>';
-  btnCapture.disabled = true;
-  btnSpeak.disabled = true;
-  btnCopy.disabled = true;
-  try {
-    const Tesseract = await import('https://cdn.jsdelivr.net/npm/tesseract.js@5/+esm');
-    const result = await Tesseract.recognize(blob, 'eng+chi_sim', {
-      logger: m => {
-        if (m.status === 'recognizing text') {
-          ocrProgressBar.style.width = (m.progress * 100) + '%';
-        }
-      }
-    });
-    const text = result.data.text.trim();
-    if (!text) {
-      textBody.innerHTML = '<div class="error-state">No text found. Try again with clearer image.</div>';
-      showToast('No text detected', true);
-      return;
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
     }
-    sentences = splitSentences(text);
-    if (sentences.length === 0) {
-      textBody.innerHTML = '<div class="error-state">No sentences found in extracted text.</div>';
-      return;
-    }
-    renderSentences(sentences);
-    btnSpeak.disabled = false;
-    btnCopy.disabled = false;
-  } catch (err) {
-    console.error('OCR error:', err);
-    textBody.innerHTML = '<div class="error-state">OCR failed: ' + err.message + '</div>';
-    showToast('OCR error — try again', true);
-  } finally {
-    spinner.classList.remove('show');
-    ocrProgress.classList.remove('show');
-    btnCapture.disabled = false;
-  }
-}
-
-function splitSentences(text) {
-  let parts;
-  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
-    try {
-      const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' });
-      parts = [...segmenter.segment(text)].map(s => s.segment);
-    } catch {
-      parts = text.match(/[^.!?\s][^.!?]*[.!?]+/g);
-    }
-  } else {
-    parts = text.match(/[^.!?\s][^.!?]*[.!?]+/g);
-  }
-  if (!parts || parts.length === 0) {
-    const lines = text.split(/\n+/).filter(s => s.trim().length > 0);
-    if (lines.length > 0) return lines.map(s => s.trim());
-    return [text.trim()].filter(Boolean);
-  }
-  return parts.map(s => s.trim()).filter(Boolean).slice(0, 100);
-}
-
-function renderSentences(sents) {
-  textBody.innerHTML = sents.map((s, i) =>
-    '<div class="sentence" data-index="' + i + '">' + esc(s) + '</div>'
-  ).join('');
-}
-
-function esc(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-function startTTS() {
-  if (!window.speechSynthesis) {
-    showToast('Text-to-speech not supported in this browser', true);
-    return;
-  }
-  if (sentences.length === 0) return;
-  if (ttsPlaying && !ttsPaused) return;
-  if (ttsPaused) { resumeTTS(); return; }
-  ttsQueue = [...sentences];
-  ttsIndex = 0;
-  ttsPlaying = true;
-  ttsPaused = false;
-  progressSection.classList.add('show');
-  updateProgress();
-  updateButtons();
-  speakNext();
-}
-
-function speakNext() {
-  if (ttsIndex >= ttsQueue.length) { finishTTS(); return; }
-  if (ttsPaused) return;
-  const text = ttsQueue[ttsIndex];
-  if (!text.trim()) { ttsIndex++; speakNext(); return; }
-  highlightSentence(ttsIndex);
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'en-US';
-  utterance.rate = 1.0;
-  currentUtterance = utterance;
-  utterance.onend = () => { ttsIndex++; updateProgress(); speakNext(); };
-  utterance.onerror = () => { ttsIndex++; updateProgress(); speakNext(); };
-  window.speechSynthesis.speak(utterance);
-}
-
-function pauseTTS() {
-  if (!ttsPlaying || ttsPaused) return;
-  ttsPaused = true;
-  if (window.speechSynthesis) window.speechSynthesis.pause();
-  updateButtons();
-}
-
-function resumeTTS() {
-  if (!ttsPlaying || !ttsPaused) return;
-  ttsPaused = false;
-  if (window.speechSynthesis) {
-    if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-    else speakNext();
-  }
-  updateButtons();
-}
-
-function stopTTS() {
-  if (window.speechSynthesis) window.speechSynthesis.cancel();
-  ttsPlaying = false;
-  ttsPaused = false;
-  ttsIndex = -1;
-  currentUtterance = null;
-  progressSection.classList.remove('show');
-  progressFill.style.width = '0';
-  progressLabel.textContent = '0/0';
-  clearHighlights();
-  updateButtons();
-  btnSpeak.textContent = '🔊 Speak Aloud';
-}
-
-function finishTTS() {
-  ttsPlaying = false;
-  ttsPaused = false;
-  ttsIndex = -1;
-  currentUtterance = null;
-  progressFill.style.width = '100%';
-  progressLabel.textContent = sentences.length + '/' + sentences.length;
-  updateButtons();
-  btnSpeak.textContent = '🔊 Speak Aloud';
-  showToast('Finished reading');
-}
-
-function highlightSentence(index) {
-  $$('.sentence').forEach(el => {
-    el.classList.remove('active', 'done');
-    const idx = parseInt(el.dataset.index, 10);
-    if (idx < index) el.classList.add('done');
-    if (idx === index) el.classList.add('active');
-  });
-  const active = document.querySelector('.sentence.active');
-  if (active) active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-}
-
-function clearHighlights() {
-  $$('.sentence').forEach(el => el.classList.remove('active', 'done'));
-}
-
-function updateProgress() {
-  const total = ttsQueue.length;
-  const current = Math.min(ttsIndex, total);
-  const pct = total > 0 ? (current / total) * 100 : 0;
-  progressFill.style.width = pct + '%';
-  progressLabel.textContent = current + '/' + total;
-}
-
-function updateButtons() {
-  if (ttsPlaying && !ttsPaused) {
-    btnSpeak.textContent = '⏸ Pause';
-    btnSpeak.className = 'btn btn-accent';
-  } else if (ttsPaused) {
-    btnSpeak.textContent = '▶ Resume';
-    btnSpeak.className = 'btn btn-success';
-  } else {
-    btnSpeak.textContent = '🔊 Speak Aloud';
-    btnSpeak.className = 'btn btn-success';
-  }
-}
-
-fileInput.addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  capturedBlob = file;
-  const url = URL.createObjectURL(file);
-  capturedImg.src = url;
-  capturedImg.style.display = 'block';
-  video.style.display = 'none';
-  placeholder.style.display = 'none';
-  overlay.classList.remove('active');
-  btnCapture.textContent = '📸 Retake';
-  btnCapture.dataset.action = 'retake';
-  btnCapture.disabled = false;
-  runOCR(file);
-});
-
-btnCapture.addEventListener('click', () => {
-  const action = btnCapture.dataset.action;
-  if (action === 'capture') startCamera();
-  else if (action === 'snap') snapPhoto();
-  else if (action === 'retake') { resetToInitial(); startCamera(); }
-});
-
-btnSpeak.addEventListener('click', () => {
-  if (ttsPlaying && !ttsPaused) pauseTTS();
-  else if (ttsPaused) resumeTTS();
-  else startTTS();
-});
-
-btnCopy.addEventListener('click', () => {
-  const text = sentences.join(' ');
-  if (!text) return;
-  navigator.clipboard.writeText(text).then(() => {
-    const old = toast.textContent;
-    showToast('Text copied!');
-  }).catch(() => showToast('Failed to copy', true));
-});
-
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    if (ttsPlaying && !ttsPaused && window.speechSynthesis) {
-      window.speechSynthesis.pause();
-      ttsPaused = true;
-      updateButtons();
-    }
-  } else {
-    if (ttsPlaying && ttsPaused && window.speechSynthesis && window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-      ttsPaused = false;
-      updateButtons();
-    }
-  }
-});
-
-console.log('Camera OCR → TTS loaded');
-</script>
+  </script>
 </body>
 </html>
