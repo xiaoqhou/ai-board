@@ -13,7 +13,6 @@
       #git-lfs
       direnv
       devbox
-      home-manager
       opencode
     ];
   in
